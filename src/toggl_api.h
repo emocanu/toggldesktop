@@ -1231,9 +1231,9 @@ extern "C" {
         void *context,
         TogglContinueSignIn cb);
 
-TOGGL_EXPORT HsvColor toggl_get_adaptive_hsv_color(
-       RgbColor rgbColor,
-       AdaptiveColor type);
+    TOGGL_EXPORT HsvColor toggl_get_adaptive_hsv_color(
+        RgbColor rgbColor,
+        AdaptiveColor type);
 
 #undef TOGGL_EXPORT
 
