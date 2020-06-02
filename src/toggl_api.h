@@ -213,20 +213,20 @@ extern "C" {
     } TogglCountryView;
 
     // Range values from [0..1]
-    typedef struct RgbColor {
+    typedef struct {
         double r;
         double g;
         double b;
     } RgbColor;
 
     // Range values from [0..1]
-    typedef struct HsvColor {
+    typedef struct {
         double h;
         double s;
         double v;
     } HsvColor;
 
-    typedef enum AdaptiveColor {
+    typedef enum {
         AdaptiveColorShapeOnLightBackground,
         AdaptiveColorShapeOnDarkBackground,
         AdaptiveColorTextOnLightBackground,
