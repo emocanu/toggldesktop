@@ -217,7 +217,7 @@ extern "C" {
         double r;
         double g;
         double b;
-    } RgbColor;
+    } TogglRgbColor;
 
     // Range values from [0..1]
     typedef struct {
@@ -1232,7 +1232,7 @@ extern "C" {
         TogglContinueSignIn cb);
 
     TOGGL_EXPORT HsvColor toggl_get_adaptive_hsv_color(
-        RgbColor rgbColor,
+        TogglRgbColor rgbColor,
         AdaptiveColor type);
 
 #undef TOGGL_EXPORT

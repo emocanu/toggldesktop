@@ -19,16 +19,16 @@ namespace toggl {
 #define safe_range_f(value, min, max) (fmin(max, fmax(value, min)))
 
 HsvColor ColorConverter::GetAdaptiveColor(std::string hexColor, AdaptiveColor type) {
-    RgbColor rbg = hexToRgb(hexColor);
+    TogglRgbColor rbg = hexToRgb(hexColor);
     return GetAdaptiveColor(rbg, type);
 }
 
-HsvColor ColorConverter::GetAdaptiveColor(RgbColor rgbColor, AdaptiveColor type) {
+HsvColor ColorConverter::GetAdaptiveColor(TogglRgbColor rgbColor, AdaptiveColor type) {
     HsvColor hsvColor = rgbToHsv(rgbColor);
     return adjustColor(hsvColor, type);
 }
 
-RgbColor ColorConverter::GetRgbAdaptiveColor(std::string hexColor, AdaptiveColor type) {
+TogglRgbColor ColorConverter::GetRgbAdaptiveColor(std::string hexColor, AdaptiveColor type) {
     HsvColor hsv = GetAdaptiveColor(hexColor, type);
     return hsvToRgb(hsv);
 }
@@ -49,7 +49,7 @@ HsvColor ColorConverter::adjustColor(HsvColor hsvColor, AdaptiveColor type) {
     return hsvColor;
 }
 
-HsvColor ColorConverter::rgbToHsv(RgbColor rgbColor)
+HsvColor ColorConverter::rgbToHsv(TogglRgbColor rgbColor)
 {
     float r = rgbColor.r;
     float g = rgbColor.g;
@@ -89,7 +89,7 @@ HsvColor ColorConverter::rgbToHsv(RgbColor rgbColor)
     return {h / 360.0, s, v}; // Range from 0..1
 }
 
-RgbColor ColorConverter::hexToRgb(std::string hex)
+TogglRgbColor ColorConverter::hexToRgb(std::string hex)
 {
     // Convert to hex value
     std::istringstream converter(hex);
@@ -104,7 +104,7 @@ RgbColor ColorConverter::hexToRgb(std::string hex)
     return { r, g, b };
 }
 
-RgbColor ColorConverter::hsvToRgb(HsvColor hsvColor) {
+TogglRgbColor ColorConverter::hsvToRgb(HsvColor hsvColor) {
     double h = hsvColor.h;
     double s = hsvColor.s;
     double v = hsvColor.v;

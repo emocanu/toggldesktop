@@ -412,7 +412,7 @@ void *ctx;
     }
 
     // adjust color
-    RgbColor rgbColor = { color.redComponent, color.greenComponent, color.blueComponent};
+    TogglRgbColor rgbColor = { color.redComponent, color.greenComponent, color.blueComponent};
     HsvColor hsvColor = toggl_get_adaptive_hsv_color(rgbColor, type);
     return [NSColor colorWithHue:hsvColor.h saturation:hsvColor.s brightness:hsvColor.v alpha:1.0];
 }
