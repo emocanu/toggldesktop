@@ -320,7 +320,8 @@ extern "C" {
     typedef void (*TogglDisplayTimerState)(
         TogglTimeEntryView *te);
 
-    typedef void (*TogglContinueSignIn)(void);
+    typedef void (*TogglContinueSignIn)(
+        );
 
     typedef void (*TogglDisplayIdleNotification)(
         const char_t *guid,
