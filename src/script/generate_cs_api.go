@@ -114,7 +114,18 @@ func main() {
 			}
 			write("public struct" + csclass)
 			write("{")
-		} else if len(csclass) != 0 {
+		} else if strings.Contains(s, "typedef enum {") {
+      // look forward for class name
+			for _, text := range l[i:] {
+				if strings.Contains(text, "} ") {
+					text = strings.Replace(text, ";", "", -1)
+					csclass = strings.Replace(text, "} ", "", -1)
+					break
+				}
+			}
+			write("public enum" + csclass)
+			write("{")
+    } else if len(csclass) != 0 {
 			if strings.Contains(s, "} Toggl") {
 				csclass = ""
 				write("")
