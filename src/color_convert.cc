@@ -18,22 +18,22 @@ namespace toggl {
 #define max_f(a, b, c)  (fmaxf(a, fmaxf(b, c)))
 #define safe_range_f(value, min, max) (fmin(max, fmax(value, min)))
 
-HsvColor ColorConverter::GetAdaptiveColor(std::string hexColor, AdaptiveColor type) {
+TogglHsvColor ColorConverter::GetAdaptiveColor(std::string hexColor, AdaptiveColor type) {
     TogglRgbColor rbg = hexToRgb(hexColor);
     return GetAdaptiveColor(rbg, type);
 }
 
-HsvColor ColorConverter::GetAdaptiveColor(TogglRgbColor rgbColor, AdaptiveColor type) {
-    HsvColor hsvColor = rgbToHsv(rgbColor);
+TogglHsvColor ColorConverter::GetAdaptiveColor(TogglRgbColor rgbColor, AdaptiveColor type) {
+    TogglHsvColor hsvColor = rgbToHsv(rgbColor);
     return adjustColor(hsvColor, type);
 }
 
 TogglRgbColor ColorConverter::GetRgbAdaptiveColor(std::string hexColor, AdaptiveColor type) {
-    HsvColor hsv = GetAdaptiveColor(hexColor, type);
+    TogglHsvColor hsv = GetAdaptiveColor(hexColor, type);
     return hsvToRgb(hsv);
 }
 
-HsvColor ColorConverter::adjustColor(HsvColor hsvColor, AdaptiveColor type) {
+TogglHsvColor ColorConverter::adjustColor(TogglHsvColor hsvColor, AdaptiveColor type) {
     switch (type) {
         case AdaptiveColorShapeOnLightBackground:
             return { hsvColor.h, hsvColor.s, hsvColor.v };
@@ -49,7 +49,7 @@ HsvColor ColorConverter::adjustColor(HsvColor hsvColor, AdaptiveColor type) {
     return hsvColor;
 }
 
-HsvColor ColorConverter::rgbToHsv(TogglRgbColor rgbColor)
+TogglHsvColor ColorConverter::rgbToHsv(TogglRgbColor rgbColor)
 {
     float r = rgbColor.r;
     float g = rgbColor.g;
@@ -104,7 +104,7 @@ TogglRgbColor ColorConverter::hexToRgb(std::string hex)
     return { r, g, b };
 }
 
-TogglRgbColor ColorConverter::hsvToRgb(HsvColor hsvColor) {
+TogglRgbColor ColorConverter::hsvToRgb(TogglHsvColor hsvColor) {
     double h = hsvColor.h;
     double s = hsvColor.s;
     double v = hsvColor.v;

@@ -1603,7 +1603,7 @@ void toggl_on_continue_sign_in(
     app(context)->UI()->OnContinueSignIn(cb);
 }
 
-HsvColor toggl_get_adaptive_hsv_color(
+TogglHsvColor toggl_get_adaptive_hsv_color(
     TogglRgbColor rgbColor,
     AdaptiveColor type) {
     return toggl::ColorConverter::GetAdaptiveColor(rgbColor, type);

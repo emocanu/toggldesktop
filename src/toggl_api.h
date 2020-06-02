@@ -224,7 +224,7 @@ extern "C" {
         double h;
         double s;
         double v;
-    } HsvColor;
+    } TogglHsvColor;
 
     typedef enum {
         AdaptiveColorShapeOnLightBackground,
@@ -1231,7 +1231,7 @@ extern "C" {
         void *context,
         TogglContinueSignIn cb);
 
-    TOGGL_EXPORT HsvColor toggl_get_adaptive_hsv_color(
+    TOGGL_EXPORT TogglHsvColor toggl_get_adaptive_hsv_color(
         TogglRgbColor rgbColor,
         AdaptiveColor type);
 
