@@ -1605,6 +1605,6 @@ void toggl_on_continue_sign_in(
 
 TogglHsvColor toggl_get_adaptive_hsv_color(
     TogglRgbColor rgbColor,
-    AdaptiveColor type) {
+    TogglAdaptiveColor type) {
     return toggl::ColorConverter::GetAdaptiveColor(rgbColor, type);
 }

@@ -231,7 +231,7 @@ extern "C" {
         AdaptiveColorShapeOnDarkBackground,
         AdaptiveColorTextOnLightBackground,
         AdaptiveColorTextOnDarkBackground
-    } AdaptiveColor;
+    } TogglAdaptiveColor;
 
     // Callbacks that need to be implemented in UI
 
@@ -1233,7 +1233,7 @@ extern "C" {
 
     TOGGL_EXPORT TogglHsvColor toggl_get_adaptive_hsv_color(
         TogglRgbColor rgbColor,
-        AdaptiveColor type);
+        TogglAdaptiveColor type);
 
 #undef TOGGL_EXPORT
 

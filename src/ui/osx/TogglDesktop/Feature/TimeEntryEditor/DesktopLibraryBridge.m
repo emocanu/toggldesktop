@@ -403,7 +403,7 @@ void *ctx;
     return [self getAdaptiveColorFromColor:color type:type];
 }
 
-- (NSColor *) getAdaptiveColorFromColor:(NSColor *) originalColor type:(AdaptiveColor) type {
+- (NSColor *) getAdaptiveColorFromColor:(NSColor *) originalColor type:(TogglAdaptiveColor) type {
     // Convert to RGB color space
     // Because some part of the app uses grey color space
     NSColor *color = [originalColor colorUsingColorSpace:NSColorSpace.deviceRGBColorSpace];
