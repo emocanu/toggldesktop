@@ -50,8 +50,9 @@
 #include <Poco/Stopwatch.h>
 #include <Poco/StreamCopier.h>
 #include <Poco/URI.h>
-#include <Poco/UTF8String.h>
 #include <Poco/URIStreamOpener.h>
+#include <Poco/UUIDGenerator.h>
+#include <Poco/UTF8String.h>
 #include <Poco/Util/TimerTask.h>
 #include <Poco/Util/TimerTaskAdapter.h>
 #include <mutex> // NOLINT
@@ -125,7 +126,7 @@ Context::Context(const std::string &app_name, const std::string &app_version)
     OnboardingService::getInstance()->RegisterEvents([&] (const OnboardingType onboardingType) {
         UI()->DisplayOnboarding(onboardingType);
     });
-    
+
     TogglClient::GetInstance().SetSyncStateMonitor(UI());
 }
 
@@ -4854,9 +4855,9 @@ void Context::syncerActivityWrapper() {
 #if defined(TOGGL_SYNC_FORCE_BATCHED)
     { BATCHED };
 #elif defined(TOGGL_SYNC_FORCE_LEGACY)
-    { LEGACY };
+    { BATCHED };
 #else
-    { STARTUP };
+    { BATCHED };
 #endif
 
     while (true) {
@@ -5000,7 +5001,7 @@ void Context::batchedSyncerActivity() {
 
             setOnline("Data pulled");
 
-            err = pushChanges(&trigger_sync_);
+            err = pushBatchedChanges(&trigger_sync_);
             trigger_push_ = false;
             if (err != noError) {
                 user_->ConfirmLoadedMore();
@@ -5027,7 +5028,7 @@ void Context::batchedSyncerActivity() {
         Poco::Mutex::ScopedLock lock(syncer_m_);
 
         if (trigger_push_) {
-            error err = pushChanges(&trigger_sync_);
+            error err = pushBatchedChanges(&trigger_sync_);
             if (err != noError) {
                 user_->ConfirmLoadedMore();
                 displayError(err);
@@ -5326,6 +5327,240 @@ error Context::pullBatchedUserData() {
     return noError;
 }
 
+error Context::pushBatchedChanges(
+    bool *had_something_to_push) {
+
+    try {
+        Poco::Stopwatch stopwatch;
+        stopwatch.start();
+
+        poco_check_ptr(had_something_to_push);
+
+        *had_something_to_push = true;
+
+        bool isPremium = false;
+
+        std::map<std::string, BaseModel *> models;
+
+        std::vector<TimeEntry *> time_entries;
+        std::vector<Project *> projects;
+        std::vector<Client *> clients;
+
+        std::string api_token("");
+
+        {
+            Poco::Mutex::ScopedLock lock(user_m_);
+            if (!user_) {
+                logger.warning("cannot push changes when logged out");
+                return noError;
+            }
+
+            api_token = user_->APIToken();
+            if (api_token.empty()) {
+                return error("cannot push changes without API token");
+            }
+            isPremium = user_->HasPremiumWorkspaces();
+
+            collectPushableModels(
+                user_->related.TimeEntries,
+                &time_entries,
+                &models);
+            collectPushableModels(
+                user_->related.Projects,
+                &projects,
+                &models);
+            collectPushableModels(
+                user_->related.Clients,
+                &clients,
+                &models);
+            if (time_entries.empty()
+                    && projects.empty()
+                    && clients.empty()) {
+                *had_something_to_push = false;
+                return noError;
+            }
+        }
+
+        std::stringstream ss;
+        ss << "Sync success (";
+
+        Json::Value request;
+
+        auto collectJson = [this, &isPremium](auto &jsonItem, auto &list) -> void {
+            // Remove some premium-feature-only data because we don't have a nullable bool property here nor in the database
+            auto stripPremiumData = [](Json::Value &o) {
+                if (o.isMember("billable"))
+                    o.removeMember("billable");
+                if (o.isMember("task_id"))
+                    o.removeMember("task_id");
+            };
+
+            // And also translate local GUIDs to LocalIDs because Sync server went with using TmpID instead of GUIDs
+            // This is fine for now (the actual resolution of these dependencies will happen only when syncing a large chunk of offline data)
+            // but in the future we should think about using entity pointers instead of storing foreign IDs and GUIDs for Clients and Projects
+            // When removing this, see the SyncPayload method, it relies on returning GUIDs
+            auto translateGUIDs = [this](Json::Value &o) {
+                if (o.isMember("project_id") && o["project_id"].isString()) {
+                    auto guid = o["project_id"].asString();
+                    if (guid.empty()) {
+                        o["project_id"] = Json::nullValue;
+                    }
+                    else {
+                        Project *project = this->user_->related.ProjectByGUID(guid);
+                        if (project) {
+                            auto localID = project->LocalID();
+                            o["project_id"] = Json::Int64(-localID);
+                        }
+                    }
+                }
+                if (o.isMember("client_id") && o["client_id"].isString()) {
+                    auto guid = o["client_id"].asString();
+                    if (guid.empty()) {
+                        o["client_id"] = Json::nullValue;
+                    }
+                    else {
+                        Client *client = this->user_->related.ClientByGUID(guid);
+                        if (client) {
+                            auto localID = client->LocalID();
+                            o["client_id"] = Json::Int64(-localID);
+                        }
+                    }
+                }
+            };
+
+            // The actual heavy lifting
+            // Go through the list of pointers and ask each model to generate a Sync server JSON
+            // The generation itself is split into three parts - We need to know:
+            //   * the type
+            //   * the metadata (usually the ID of the item and the workspace) and
+            //   * the payload (properties when creating or the ones that have changed)
+            // The payload has to be modified for some special cases (it's much easier to do this little hack now
+            // than to fix it properly - we'd have to change the storage of a ton of properties)
+            // Also, we don't track the relationships between entities in a very smart way so SyncPayload
+            // returns a GUID in place of a foreign ID (of clients and projects) and we then look for the actual
+            // local ID of the entity and question and use that instead.
+            for (auto i : list) {
+                Json::Value item, meta;
+
+                i->EnsureGUID();
+
+                item["type"] = i->SyncType();
+                item["meta"] = i->SyncMetadata();
+
+                Json::Value payload = i->SyncPayload();
+                if (!isPremium)
+                    stripPremiumData(payload);
+                translateGUIDs(payload);
+
+                if (!payload.isNull())
+                    item["payload"] = payload;
+
+                jsonItem.append(item);
+            }
+        };
+
+        if (!clients.empty())
+            collectJson(request["clients"], clients);
+        if (!projects.empty())
+            collectJson(request["projects"], projects);
+        if (!time_entries.empty())
+            collectJson(request["time_entries"], time_entries);
+
+        Json::FastWriter w;
+        std::string payload = w.write(request);
+
+        std::string requestID = Poco::UUIDGenerator().createOne().toString();
+
+        std::cerr << "PAYLOAD: " << std::endl << payload << std::endl;
+
+        HTTPRequest req;
+        req.payload = payload;
+        req.host = urls::SyncAPI();
+        req.relative_url = "/push/" + requestID;
+        req.basic_auth_username = api_token;
+        req.basic_auth_password = "api_token";
+
+        auto response = TogglClient::GetInstance().Post(req);
+
+        std::cerr << "RESPONSE: " << std::endl << response.body << std::endl;
+        std::cerr << "RESPONSE: " << std::endl << response.status_code << std::endl;
+
+        if (response.err != noError) {
+            logger.log("Sync error: ", response.err);
+            return displayError(response.err);
+        }
+
+        auto handleResponse = [this](Json::Value &json, auto &list) -> error {
+            auto findByLocalId = [](auto &list, auto localID) -> typename std::remove_reference<decltype(list)>::type::value_type {
+                auto id = std::stoi(localID);
+                if (id < 0)
+                    id = -id;
+                for (auto i : list) {
+                    if (i->LocalID() == id) {
+                        return i;
+                    }
+                }
+                return nullptr;
+            };
+            auto findByGuid = [](auto &list, auto guid) -> typename std::remove_reference<decltype(list)>::type::value_type {
+                for (auto i : list) {
+                    if (i->GUID() == guid) {
+                        return i;
+                    }
+                }
+                return nullptr;
+            };
+
+            for (auto i : json) {
+                if (!i["payload"].empty() && i["payload"]["success"].asBool()) {
+                    auto model = findByLocalId(list, i["meta"]["client_assigned_id"].asString());
+                    if (model) {
+                        auto &root = i["payload"]["result"];
+                        auto id = root["id"].asUInt64();
+                        if (!id) {
+                            continue;
+                        }
+
+                        if (!model->ID()) {
+                            user_->SetModelID(id, model);
+                        }
+
+                        if (model->ID() != id) {
+                            return error("Backend has changed the ID of the entry");
+                        }
+
+                        model->LoadFromJSON(i["payload"]["result"]);
+                        model->ClearDirty();
+                        model->ClearUnsynced();
+                    }
+                }
+            }
+            return noError;
+        };
+
+        Json::Reader reader;
+        Json::Value responseJson;
+        reader.parse(response.body, responseJson);
+
+        handleResponse(responseJson["clients"], clients);
+        updateProjectClients(clients, projects);
+        handleResponse(responseJson["projects"], projects);
+        updateEntryProjects(projects, time_entries);
+        handleResponse(responseJson["time_entries"], time_entries);
+
+        stopwatch.stop();
+        ss << ") Total = " << stopwatch.elapsed() / 1000 << " ms";
+        logger.debug(ss.str());
+    } catch(const Poco::Exception& exc) {
+        return exc.displayText();
+    } catch(const std::exception& ex) {
+        return ex.what();
+    } catch(const std::string & ex) {
+        return ex;
+    }
+    return noError;
+}
+
 error Context::pushChanges(
     bool *had_something_to_push) {
     try {
@@ -5555,6 +5790,23 @@ error Context::pushProjects(
     return err;
 }
 
+error Context::updateProjectClients(const std::vector<Client *> &clients,
+                                     const std::vector<Project *> &projects) {
+    for (auto it = projects.cbegin(); it != projects.cend(); ++it) {
+        if (!(*it)->CID() && !(*it)->ClientGUID().empty()) {
+            // Find client id
+            for (auto itc = clients.begin(); itc != clients.end(); ++itc) {
+                if ((*itc)->GUID().compare((*it)->ClientGUID()) == 0) {
+                    (*it)->SetCID((*itc)->ID());
+                    break;
+                }
+            }
+        }
+    }
+
+    return noError;
+}
+
 error Context::updateEntryProjects(const std::vector<Project *> &projects,
                                    const std::vector<TimeEntry *> &time_entries) {
     for (std::vector<TimeEntry *>::const_iterator it =
@@ -5673,7 +5925,7 @@ error Context::pushEntries(
         }
 
         if (!(*it)->ID()) {
-            if (!(user_->SetTimeEntryID(id, (*it)))) {
+            if (!(user_->SetModelID(id, (*it)))) {
                 continue;
             }
         }
