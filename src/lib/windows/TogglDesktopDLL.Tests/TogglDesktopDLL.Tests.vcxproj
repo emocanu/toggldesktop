@@ -46,11 +46,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\TogglDesktopDLL\TogglDesktopDLL.vcxproj">
-      <Project>{3ace25dd-04ce-47d8-9658-3d0546521da2}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <ItemDefinitionGroup />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
@@ -99,14 +94,14 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\..\third_party\poco\openssl\build\include;$(ProjectDir)..\..\..\..\third_party\jsoncpp\dist;$(ProjectDir)..\..\..\..\third_party\poco\Foundation\include;$(ProjectDir)..\..\..\..\third_party\poco\Util\include;$(ProjectDir)..\..\..\..\third_party\poco\Crypto\include;$(ProjectDir)..\..\..\..\third_party\poco\Net\include;$(ProjectDir)..\..\..\..\third_party\poco\NetSSL_OpenSSL\include;$(ProjectDir)..\..\..\..\third_party\poco\Data\include;$(ProjectDir)..\..\..\..\third_party\poco\Data\SQLite\include;$(ProjectDir)..\..\..\..\third_party\poco\Data\SQLite\src;$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\;$(ProjectDir)..\..\..\..\third_party\poco\openssl\build\include;$(ProjectDir)..\..\..\..\third_party\jsoncpp\dist;$(ProjectDir)..\..\..\..\third_party\poco\Foundation\include;$(ProjectDir)..\..\..\..\third_party\poco\Util\include;$(ProjectDir)..\..\..\..\third_party\poco\Crypto\include;$(ProjectDir)..\..\..\..\third_party\poco\Net\include;$(ProjectDir)..\..\..\..\third_party\poco\NetSSL_OpenSSL\include;$(ProjectDir)..\..\..\..\third_party\poco\Data\include;$(ProjectDir)..\..\..\..\third_party\poco\Data\SQLite\include;$(ProjectDir)..\..\..\..\third_party\poco\Data\SQLite\src;$(MSBuildThisFileDirectory)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>false</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\third_party\poco\Data\SQLite\obj\SQLite\release_shared;$(ProjectDir)..\..\..\..\third_party\poco\lib;$(ProjectDir)..\..\..\ui\windows\TogglDesktop\packages\Microsoft.googletest.v140.windesktop.msvcstl.dyn.rt-dyn.1.8.1\lib\native\v140\windesktop\msvcstl\dyn\rt-dyn\x86\Release;$(ProjectDir)..\..\windows\TogglDesktopDLL\bin\Win32\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\third_party\poco\Data\SQLite\obj\SQLite\release_shared;$(ProjectDir)..\..\..\..\third_party\poco\lib;$(ProjectDir)..\..\..\ui\windows\TogglDesktop\packages\Microsoft.googletest.v140.windesktop.msvcstl.dyn.rt-dyn.1.8.1\lib\native\v140\windesktop\msvcstl\dyn\rt-dyn\x86\Release;$(ProjectDir)..\..\..\ui\windows\TogglDesktop\TogglDesktop\bin\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>PocoFoundation.lib;PocoUtil.lib;PocoXML.lib;PocoNet.lib;PocoCrypto.lib;PocoNetSSL.lib;PocoData.lib;PocoDataSQLite.lib;sqlite3;TogglDesktopDLL.lib;gtest_main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -147,6 +142,11 @@
       <Link>%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TogglDesktopDLL\TogglDesktopDLL.vcxproj">
+      <Project>{3ace25dd-04ce-47d8-9658-3d0546521da2}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
